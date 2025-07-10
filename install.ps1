@@ -35,6 +35,6 @@ foreach ($file in $files) {
 Push-Location $installDir
 # Ensure requirements are installed silently
 pip install -r requirements.txt --quiet
-# Execute the python script directly in a new process
-Start-Process python -ArgumentList "prompt_enhancer.py"
+# Execute the python GUI script without a console window
+Start-Process pythonw -ArgumentList "prompt_enhancer.py"
 Pop-Location
