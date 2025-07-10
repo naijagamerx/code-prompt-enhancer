@@ -1,3 +1,7 @@
+# Clean the console and show a startup message
+Clear-Host
+Write-Host "Starting Optimized Coding English Enhancer..."
+
 # Define the repository URL and local directory
 $repoUrl = "https://raw.githubusercontent.com/naijagamerx/code-prompt-enhancer/main"
 $installDir = "$env:APPDATA\code-prompt-enhancer"
@@ -20,8 +24,7 @@ foreach ($file in $files) {
     $source = "$repoUrl/$file"
     $destination = "$installDir\$file"
     try {
-        Invoke-RestMethod -Uri $source -OutFile $destination
-        Write-Host "Successfully downloaded $file"
+        Invoke-RestMethod -Uri $source -OutFile $destination -ErrorAction SilentlyContinue
     } catch {
         Write-Error "Failed to download $file from $source. Error: $_"
         exit 1
@@ -30,10 +33,8 @@ foreach ($file in $files) {
 
 # Navigate to the installation directory and start the application
 Push-Location $installDir
-# Ensure requirements are installed
-pip install -r requirements.txt
-# Execute the python script directly
-python prompt_enhancer.py
+# Ensure requirements are installed silently
+pip install -r requirements.txt --quiet
+# Execute the python script directly in a new process
+Start-Process python -ArgumentList "prompt_enhancer.py"
 Pop-Location
-
-Write-Host "Application setup complete and started."
