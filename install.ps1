@@ -1,3 +1,6 @@
+# Change to the directory where the script is located
+Set-Location -Path $PSScriptRoot
+
 # Check if Python is installed
 try {
     Write-Host "Checking for Python installation..."
