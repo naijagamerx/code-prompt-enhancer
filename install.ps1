@@ -12,8 +12,7 @@ $files = @(
     "ascii_art.txt",
     "encrypt_config.py",
     "prompt_enhancer.py",
-    "requirements.txt",
-    "start.bat"
+    "requirements.txt"
 )
 
 # Download each file
@@ -33,8 +32,8 @@ foreach ($file in $files) {
 Push-Location $installDir
 # Ensure requirements are installed
 pip install -r requirements.txt
-# Execute the start batch file
-cmd /c start.bat
+# Execute the python script directly
+python prompt_enhancer.py
 Pop-Location
 
 Write-Host "Application setup complete and started."
