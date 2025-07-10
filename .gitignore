@@ -1,0 +1,25 @@
+# Sensitive configuration files
+enhancer_config.json
+encrypted_config.json
+encryption.key
+
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# IDE specific files
+.vscode/
+.idea/
+
+# Operating System files
+.DS_Store
+Thumbs.db
