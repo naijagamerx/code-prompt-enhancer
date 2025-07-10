@@ -7,6 +7,7 @@
 !encrypt_config.py
 !prompt_enhancer.py
 !start.bat
+!install.ps1
 !requirements.txt
 
 # Unignore directories containing desired files (if any)
