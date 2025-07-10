@@ -1,8 +1,8 @@
-# Change to the directory where the script is located
-Set-Location -Path $PSScriptRoot
+# Change to the directory where the script is located, and ensure we return afterwards
+Push-Location -Path $PSScriptRoot
 
-# Check if Python is installed
 try {
+    # Check if Python is installed
     Write-Host "Checking for Python installation..."
     python --version
 } catch {
@@ -26,3 +26,8 @@ pip install -r requirements.txt
 # Run the application
 Write-Host "Starting the English Enhancer application..."
 python english_enhancer.py
+
+finally {
+    # Return to the original directory
+    Pop-Location
+}
