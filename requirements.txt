@@ -1,0 +1,5 @@
+pyperclip
+keyboard
+cryptography
+groq
+ttkthemes

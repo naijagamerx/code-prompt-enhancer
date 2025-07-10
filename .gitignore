@@ -1,25 +1,14 @@
-# Sensitive configuration files
-enhancer_config.json
-encrypted_config.json
-encryption.key
+# Ignore everything by default
+*
 
-# Python build artifacts
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-build/
-dist/
-*.egg-info/
-.pytest_cache/
+# Unignore specific files
+!ascii_art.txt
+!README.md
+!encrypt_config.py
+!prompt_enhancer.py
+!start.bat
+!install.ps1
+!requirements.txt
 
-# IDE specific files
-.vscode/
-.idea/
-
-# Operating System files
-.DS_Store
-Thumbs.db
+# Unignore directories containing desired files (if any)
+# For example, if python files were in a 'src' directory: !src/
