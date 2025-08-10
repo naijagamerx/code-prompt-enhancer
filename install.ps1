@@ -3,7 +3,7 @@ Clear-Host
 Write-Host "Starting Optimized Coding English Enhancer..."
 
 # Define the repository URL and local directory
-$repoUrl = "https://raw.githubusercontent.com/naijagamerx/code-prompt-enhancer/main"
+$repoUrl = "https://raw.githubusercontent.com/naijagamerx/code-prompt-enhancer/feature/enhancer-improvements"
 $installDir = "$env:APPDATA\code-prompt-enhancer"
 
 # Create the installation directory if it doesn't exist
