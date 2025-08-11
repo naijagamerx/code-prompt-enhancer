@@ -164,22 +164,35 @@ class OptimizedCodingEnglishEnhancer:
             print(f"Error saving history: {e}")
     
     def _setup_gui(self):
-        """Setup GUI with lazy loading and optimized widget creation."""
+        """Setup GUI with a tabbed interface."""
         self.root = ThemedTk(theme=self._theme_name)
         self.root.title("Coding English Enhancer - Optimized")
         self.root.geometry("800x900")
-        
-        # Create GUI sections
-        self._create_api_key_section()
-        self._create_settings_section()
-        self._create_hotkey_section()
-        self._create_io_sections()
-        self._create_codebase_section()
-        self._create_history_section()
 
-    def _create_codebase_section(self):
+        # Create the main notebook (tabbed interface)
+        notebook = ttk.Notebook(self.root)
+        notebook.pack(expand=True, fill='both', padx=10, pady=10)
+
+        # Create frames for each tab
+        self.enhancer_tab = ttk.Frame(notebook)
+        self.history_tab = ttk.Frame(notebook)
+
+        notebook.add(self.enhancer_tab, text='Enhancer')
+        notebook.add(self.history_tab, text='History')
+
+        # Populate the Enhancer Tab
+        self._create_api_key_section(self.enhancer_tab)
+        self._create_settings_section(self.enhancer_tab)
+        self._create_hotkey_section(self.enhancer_tab)
+        self._create_codebase_section(self.enhancer_tab)
+        self._create_io_sections(self.enhancer_tab)
+
+        # Populate the History Tab
+        self._create_history_section(self.history_tab)
+
+    def _create_codebase_section(self, parent):
         """Create the optional codebase context section."""
-        codebase_frame = ttk.LabelFrame(self.root, text="Optional Codebase Context")
+        codebase_frame = ttk.LabelFrame(parent, text="Optional Codebase Context")
         codebase_frame.pack(fill=tk.X, padx=10, pady=5, ipady=5)
 
         button_frame = ttk.Frame(codebase_frame)
@@ -205,30 +218,58 @@ class OptimizedCodingEnglishEnhancer:
         self.codebase_path_label.config(text="No folder selected.")
         self.status_label.config(text="Codebase folder cleared.")
 
-    def _generate_file_tree(self, directory):
-        """Generate a string representation of the file tree."""
-        lines = []
-        ignore_dirs = {'.git', '__pycache__', 'node_modules', 'target', 'build', 'dist'}
-        ignore_files = {'.DS_Store'}
+    def _extract_keywords_from_prompt(self, text):
+        """Extract potential keywords and file paths from the user's prompt."""
+        # Find potential file paths (e.g., 'path/to/file.py')
+        path_pattern = re.compile(r'[\w\-\./]+\.[\w]+')
+        paths = set(path_pattern.findall(text))
 
-        for root, dirs, files in os.walk(directory):
-            # Exclude ignored directories
-            dirs[:] = [d for d in dirs if d not in ignore_dirs]
+        # Extract other potential keywords, ignoring common words
+        stop_words = {'the', 'a', 'an', 'is', 'to', 'in', 'on', 'for', 'of', 'with', 'and', 'or', 'but'}
+        words = set(re.findall(r'\b\w+\b', text.lower()))
+        keywords = words - stop_words
 
-            level = root.replace(directory, '').count(os.sep)
-            indent = ' ' * 4 * level
-            lines.append(f"{indent}{os.path.basename(root)}/")
+        return keywords.union(paths)
 
-            sub_indent = ' ' * 4 * (level + 1)
-            for f in files:
-                if f not in ignore_files:
-                    lines.append(f"{sub_indent}{f}")
+    def _find_relevant_files(self, keywords):
+        """Search for files in the codebase that match the keywords."""
+        relevant_files = set()
+        if not self._codebase_path or not keywords:
+            return ""
 
-        return "\n".join(lines)
+        for root, _, files in os.walk(self._codebase_path):
+            if any(d in root for d in {'.git', '__pycache__', 'node_modules'}):
+                continue
 
-    def _create_api_key_section(self):
+            for file in files:
+                if len(relevant_files) >= 10:  # Limit to 10 relevant files
+                    break
+
+                file_path = os.path.join(root, file)
+                # Check if keywords are in the filename
+                if any(k in file.lower() for k in keywords):
+                    relevant_files.add(file_path)
+                    continue
+
+                # If not in filename, check file content
+                try:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        content_sample = f.read(512)  # Read first 512 bytes
+                        if any(k in content_sample.lower() for k in keywords):
+                            relevant_files.add(file_path)
+                except Exception:
+                    continue # Ignore files we can't read
+
+        if not relevant_files:
+            return ""
+
+        # Format the output
+        relative_paths = [os.path.relpath(p, self._codebase_path) for p in relevant_files]
+        return "Relevant files found:\n- " + "\n- ".join(relative_paths)
+
+    def _create_api_key_section(self, parent):
         """Create API key section with optimized layout."""
-        api_frame = ttk.LabelFrame(self.root, text="API Key")
+        api_frame = ttk.LabelFrame(parent, text="API Key")
         api_frame.pack(fill=tk.X, padx=10, pady=(10, 5), ipady=5)
         
         ttk.Label(api_frame, text="Groq API Key:").pack(side=tk.LEFT, padx=5)
@@ -239,9 +280,9 @@ class OptimizedCodingEnglishEnhancer:
         
         ttk.Button(api_frame, text="Save Key", command=self._save_api_key).pack(side=tk.RIGHT, padx=5)
 
-    def _create_settings_section(self):
+    def _create_settings_section(self, parent):
         """Create settings section with cached widget references."""
-        settings_frame = ttk.LabelFrame(self.root, text="Configuration")
+        settings_frame = ttk.LabelFrame(parent, text="Configuration")
         settings_frame.pack(fill=tk.X, padx=10, pady=5, ipady=5)
         
         # Model selection
@@ -270,9 +311,9 @@ class OptimizedCodingEnglishEnhancer:
         self.theme_combo.set(friendly_theme_name)
         self.theme_combo.bind("<<ComboboxSelected>>", self._on_theme_select)
 
-    def _create_hotkey_section(self):
+    def _create_hotkey_section(self, parent):
         """Create hotkey section with optimized event handling."""
-        hotkey_frame = ttk.LabelFrame(self.root, text="Hotkey Settings")
+        hotkey_frame = ttk.LabelFrame(parent, text="Hotkey Settings")
         hotkey_frame.pack(fill=tk.X, padx=10, pady=5, ipady=5)
         
         instruction_text = ("To set a keyboard hotkey, click a box and press the combo. "
@@ -308,20 +349,23 @@ class OptimizedCodingEnglishEnhancer:
         ttk.Button(button_frame, text="Reset to Defaults", 
                   command=self._reset_hotkeys_to_default).pack(side=tk.LEFT, padx=5)
         
-    def _create_io_sections(self):
+    def _create_io_sections(self, parent):
         """Create input/output sections with optimized text widgets."""
+        io_frame = ttk.Frame(parent)
+        io_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+
         # Input section
-        input_frame = ttk.LabelFrame(self.root, text="Input Text (or Copy text and press hotkey)")
+        input_frame = ttk.LabelFrame(io_frame, text="Input Text (or Copy text and press hotkey)")
         input_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         
         self.input_text = scrolledtext.ScrolledText(
             input_frame, height=10, wrap=tk.WORD, bd=0, relief="flat",
-            undo=True, maxundo=20  # Enable undo with limited history
+            undo=True, maxundo=20
         )
         self.input_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Button section
-        button_frame = ttk.Frame(self.root)
+        button_frame = ttk.Frame(io_frame)
         button_frame.pack(fill=tk.X, padx=10, pady=5)
         
         ttk.Button(button_frame, text="Enhance Text", command=self._enhance_text).pack(side=tk.LEFT, padx=(5,0))
@@ -329,7 +373,7 @@ class OptimizedCodingEnglishEnhancer:
         ttk.Button(button_frame, text="Copy Result", command=self._copy_result).pack(side=tk.LEFT, padx=5)
         
         # Output section
-        output_frame = ttk.LabelFrame(self.root, text="Enhanced Text")
+        output_frame = ttk.LabelFrame(io_frame, text="Enhanced Text")
         output_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         
         self.output_text = scrolledtext.ScrolledText(
@@ -340,15 +384,15 @@ class OptimizedCodingEnglishEnhancer:
         
         # Status section
         status_frame = ttk.Frame(self.root)
-        status_frame.pack(fill=tk.X, padx=10, pady=(5,10))
+        status_frame.pack(fill=tk.X, padx=10, pady=(5,10), side=tk.BOTTOM)
         
         self.status_label = ttk.Label(status_frame, text="Ready. Copy text to your clipboard, then press your hotkey.")
         self.status_label.pack(side=tk.LEFT, padx=5)
     
-    def _create_history_section(self):
+    def _create_history_section(self, parent):
         """Create the enhancement history section."""
-        history_frame = ttk.LabelFrame(self.root, text="Enhancement History (Last 10)")
-        history_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        history_frame = ttk.LabelFrame(parent, text="Enhancement History (Last 10)")
+        history_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         list_frame = ttk.Frame(history_frame)
         list_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -450,17 +494,17 @@ I've identified several issues that require attention:
 """
 
     def _get_enhancement_prompt(self, text):
-        """Generate enhancement prompt using cached template."""
+        """Generate enhancement prompt using cached template, including smart context."""
         codebase_context = ""
         if self._codebase_path and os.path.isdir(self._codebase_path):
-            tree = self._generate_file_tree(self._codebase_path)
-            codebase_context = (
-                "The user has provided the following codebase structure for context. "
-                "Use it to make the task breakdown more specific and accurate. "
-                "Reference file paths when possible.\n"
-                "**Codebase Structure:**\n---\n"
-                f"{tree}\n---\n\n"
-            )
+            keywords = self._extract_keywords_from_prompt(text)
+            context_str = self._find_relevant_files(keywords)
+            if context_str:
+                codebase_context = (
+                    "The user has provided a codebase. The following files seem most relevant to their request. "
+                    "Use them to make the task breakdown more specific.\n"
+                    f"**Relevant Files:**\n---\n{context_str}\n---\n\n"
+                )
 
         template = self._get_enhancement_prompt_template()
         return template.format(text=text, codebase_context=codebase_context)
