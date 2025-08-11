@@ -164,14 +164,23 @@ class OptimizedCodingEnglishEnhancer:
             print(f"Error saving history: {e}")
     
     def _setup_gui(self):
-        """Setup GUI with a tabbed interface."""
+        """Setup GUI with a two-column, tabbed interface."""
         self.root = ThemedTk(theme=self._theme_name)
         self.root.title("Coding English Enhancer - Optimized")
-        self.root.geometry("800x900")
+        self.root.geometry("1200x800") # Adjusted for a wider layout
 
-        # Create the main notebook (tabbed interface)
-        notebook = ttk.Notebook(self.root)
-        notebook.pack(expand=True, fill='both', padx=10, pady=10)
+        # Status bar at the very bottom
+        status_frame = ttk.Frame(self.root)
+        status_frame.pack(fill=tk.X, padx=10, pady=(5,10), side=tk.BOTTOM)
+        self.status_label = ttk.Label(status_frame, text="Ready.")
+        self.status_label.pack(side=tk.LEFT, padx=5)
+
+        # Main container that holds tabs
+        main_container = ttk.Frame(self.root)
+        main_container.pack(expand=True, fill='both', padx=10, pady=10)
+
+        notebook = ttk.Notebook(main_container)
+        notebook.pack(expand=True, fill='both')
 
         # Create frames for each tab
         self.enhancer_tab = ttk.Frame(notebook)
@@ -180,12 +189,22 @@ class OptimizedCodingEnglishEnhancer:
         notebook.add(self.enhancer_tab, text='Enhancer')
         notebook.add(self.history_tab, text='History')
 
-        # Populate the Enhancer Tab
-        self._create_api_key_section(self.enhancer_tab)
-        self._create_settings_section(self.enhancer_tab)
-        self._create_hotkey_section(self.enhancer_tab)
-        self._create_codebase_section(self.enhancer_tab)
-        self._create_io_sections(self.enhancer_tab)
+        # --- Populate the Enhancer Tab with a two-column layout ---
+        left_frame = ttk.Frame(self.enhancer_tab)
+        left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
+
+        right_frame = ttk.Frame(self.enhancer_tab)
+        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+        # Populate the Left Column
+        self._create_api_key_section(left_frame)
+        self._create_settings_section(left_frame)
+        self._create_hotkey_section(left_frame)
+        self._create_codebase_section(left_frame)
+        self._create_input_section(left_frame) # New method for just input
+
+        # Populate the Right Column
+        self._create_output_section(right_frame) # New method for just output
 
         # Populate the History Tab
         self._create_history_section(self.history_tab)
@@ -349,46 +368,37 @@ class OptimizedCodingEnglishEnhancer:
         ttk.Button(button_frame, text="Reset to Defaults", 
                   command=self._reset_hotkeys_to_default).pack(side=tk.LEFT, padx=5)
         
-    def _create_io_sections(self, parent):
-        """Create input/output sections with optimized text widgets."""
-        io_frame = ttk.Frame(parent)
-        io_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
-
+    def _create_input_section(self, parent):
+        """Create the input text and button sections."""
         # Input section
-        input_frame = ttk.LabelFrame(io_frame, text="Input Text (or Copy text and press hotkey)")
-        input_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        input_frame = ttk.LabelFrame(parent, text="Input Text (or Copy text and press hotkey)")
+        input_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=5)
         
         self.input_text = scrolledtext.ScrolledText(
-            input_frame, height=10, wrap=tk.WORD, bd=0, relief="flat",
+            input_frame, height=15, wrap=tk.WORD, bd=0, relief="flat",
             undo=True, maxundo=20
         )
         self.input_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Button section
-        button_frame = ttk.Frame(io_frame)
-        button_frame.pack(fill=tk.X, padx=10, pady=5)
+        button_frame = ttk.Frame(parent)
+        button_frame.pack(fill=tk.X, padx=0, pady=5)
         
-        ttk.Button(button_frame, text="Enhance Text", command=self._enhance_text).pack(side=tk.LEFT, padx=(5,0))
+        ttk.Button(button_frame, text="Enhance Text", command=self._enhance_text).pack(side=tk.LEFT)
         ttk.Button(button_frame, text="Clear", command=self._clear_text).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Copy Result", command=self._copy_result).pack(side=tk.LEFT, padx=5)
-        
-        # Output section
-        output_frame = ttk.LabelFrame(io_frame, text="Enhanced Text")
-        output_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+    def _create_output_section(self, parent):
+        """Create the output text section."""
+        output_frame = ttk.LabelFrame(parent, text="Enhanced Text")
+        output_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
         
         self.output_text = scrolledtext.ScrolledText(
             output_frame, height=10, wrap=tk.WORD, bd=0, relief="flat",
             undo=True, maxundo=20
         )
         self.output_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        
-        # Status section
-        status_frame = ttk.Frame(self.root)
-        status_frame.pack(fill=tk.X, padx=10, pady=(5,10), side=tk.BOTTOM)
-        
-        self.status_label = ttk.Label(status_frame, text="Ready. Copy text to your clipboard, then press your hotkey.")
-        self.status_label.pack(side=tk.LEFT, padx=5)
-    
+
     def _create_history_section(self, parent):
         """Create the enhancement history section."""
         history_frame = ttk.LabelFrame(parent, text="Enhancement History (Last 10)")
