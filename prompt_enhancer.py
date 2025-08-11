@@ -35,6 +35,9 @@ class OptimizedCodingEnglishEnhancer:
     THEME_MAP = {
         'Radiance (Polished)': 'radiance',
         'Plastik (3D)': 'plastik',
+        'Breeze (Clean)': 'breeze',
+        'Clearlooks (Classic)': 'clearlooks',
+        'Windows Native': 'winnative',
     }
     
     # Pre-compiled regex patterns for better performance
@@ -219,6 +222,8 @@ class OptimizedCodingEnglishEnhancer:
         context_button_frame.pack(fill=tk.X, padx=5, pady=5)
         ttk.Button(context_button_frame, text="Select Project Folder...", command=self._select_codebase_folder).pack(side=tk.LEFT)
         ttk.Button(context_button_frame, text="Clear Folder", command=self._clear_codebase_folder).pack(side=tk.LEFT, padx=5)
+        self.index_button = ttk.Button(context_button_frame, text="Index Project", command=self._start_indexing_thread)
+        self.index_button.pack(side=tk.LEFT, padx=5)
 
         self.codebase_path_label = ttk.Label(codebase_frame, text="No folder selected.")
         self.codebase_path_label.pack(fill=tk.X, padx=5, pady=5)
@@ -248,6 +253,61 @@ class OptimizedCodingEnglishEnhancer:
         self.codebase_path_label.config(text="No folder selected.")
         self.status_label.config(text="Codebase folder cleared.")
 
+    def _start_indexing_thread(self):
+        """Start the project indexing process in a background thread."""
+        if not self._codebase_path:
+            messagebox.showwarning("Warning", "Please select a project folder first.")
+            return
+
+        self.index_button.config(state=tk.DISABLED)
+        self.status_label.config(text="Indexing project... This may take a few minutes.")
+
+        # Run indexing in a separate thread to keep the GUI responsive
+        indexing_thread = threading.Thread(target=self._perform_indexing, daemon=True)
+        indexing_thread.start()
+
+    def _perform_indexing(self):
+        """Walk through files, create an index, and save it."""
+        try:
+            index = {}
+            # A simple regex to split text into words
+            word_pattern = re.compile(r'\b\w+\b')
+
+            for root, _, files in os.walk(self._codebase_path):
+                if any(d in root for d in {'.git', '__pycache__', 'node_modules', '.vscode'}):
+                    continue
+
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    try:
+                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read().lower()
+                            words = set(word_pattern.findall(content))
+                            for word in words:
+                                if word not in index:
+                                    index[word] = []
+                                # Store relative paths to save space
+                                relative_path = os.path.relpath(file_path, self._codebase_path)
+                                if relative_path not in index[word]:
+                                    index[word].append(relative_path)
+                    except Exception:
+                        continue # Ignore files that can't be read
+
+            # Save the index
+            cache_dir = os.path.join(self._codebase_path, ".enhancer_cache")
+            os.makedirs(cache_dir, exist_ok=True)
+            index_path = os.path.join(cache_dir, "index.json")
+            with open(index_path, 'w', encoding='utf-8') as f:
+                json.dump(index, f)
+
+            self.root.after(0, self.status_label.config, {'text': f"Project indexing complete. Index saved in {cache_dir}"})
+
+        except Exception as e:
+            self.root.after(0, messagebox.showerror, ("Indexing Error", f"An error occurred: {e}"))
+        finally:
+            # Re-enable the button from the main thread
+            self.root.after(0, self.index_button.config, {'state': tk.NORMAL})
+
     def _extract_keywords_from_prompt(self, text):
         """Extract potential keywords and file paths from the user's prompt."""
         # Find potential file paths (e.g., 'path/to/file.py')
@@ -262,40 +322,67 @@ class OptimizedCodingEnglishEnhancer:
         return keywords.union(paths)
 
     def _find_relevant_files(self, keywords):
-        """Search for files in the codebase that match the keywords."""
-        relevant_files = set()
+        """Search for relevant files using a pre-built index if available."""
         if not self._codebase_path or not keywords:
             return ""
 
+        index_path = os.path.join(self._codebase_path, ".enhancer_cache", "index.json")
+
+        if os.path.exists(index_path):
+            # Use the pre-built index for instant results
+            try:
+                with open(index_path, 'r', encoding='utf-8') as f:
+                    index = json.load(f)
+
+                relevant_files = set()
+                for keyword in keywords:
+                    # Find files associated with this keyword in the index
+                    if keyword in index:
+                        relevant_files.update(index[keyword])
+
+                if not relevant_files:
+                    return ""
+                # Return a limited number of files to keep context small
+                return "Relevant files found (from index):\n- " + "\n- ".join(list(relevant_files)[:10])
+
+            except (IOError, json.JSONDecodeError) as e:
+                print(f"Error reading index file: {e}")
+                # Fallback to live search if index is corrupt
+                return self._live_search_relevant_files(keywords)
+        else:
+            # Fallback to live search if no index exists
+            self.status_label.config(text="No index found. Performing live file search...")
+            return self._live_search_relevant_files(keywords)
+
+    def _live_search_relevant_files(self, keywords):
+        """Perform a live search of the filesystem for relevant files."""
+        relevant_files = set()
         for root, _, files in os.walk(self._codebase_path):
             if any(d in root for d in {'.git', '__pycache__', 'node_modules'}):
                 continue
 
             for file in files:
-                if len(relevant_files) >= 10:  # Limit to 10 relevant files
+                if len(relevant_files) >= 10:
                     break
 
                 file_path = os.path.join(root, file)
-                # Check if keywords are in the filename
                 if any(k in file.lower() for k in keywords):
                     relevant_files.add(file_path)
                     continue
 
-                # If not in filename, check file content
                 try:
                     with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        content_sample = f.read(512)  # Read first 512 bytes
+                        content_sample = f.read(512)
                         if any(k in content_sample.lower() for k in keywords):
                             relevant_files.add(file_path)
                 except Exception:
-                    continue # Ignore files we can't read
+                    continue
 
         if not relevant_files:
             return ""
 
-        # Format the output
         relative_paths = [os.path.relpath(p, self._codebase_path) for p in relevant_files]
-        return "Relevant files found:\n- " + "\n- ".join(relative_paths)
+        return "Relevant files found (live search):\n- " + "\n- ".join(relative_paths)
 
     def _create_api_key_section(self, parent):
         """Create API key section with optimized layout."""
