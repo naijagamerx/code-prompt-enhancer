@@ -211,17 +211,28 @@ class OptimizedCodingEnglishEnhancer:
 
     def _create_codebase_section(self, parent):
         """Create the optional codebase context section."""
-        codebase_frame = ttk.LabelFrame(parent, text="Optional Codebase Context")
+        codebase_frame = ttk.LabelFrame(parent, text="Context and Actions")
         codebase_frame.pack(fill=tk.X, padx=10, pady=5, ipady=5)
 
-        button_frame = ttk.Frame(codebase_frame)
-        button_frame.pack(fill=tk.X, padx=5, pady=5)
-
-        ttk.Button(button_frame, text="Select Project Folder...", command=self._select_codebase_folder).pack(side=tk.LEFT)
-        ttk.Button(button_frame, text="Clear", command=self._clear_codebase_folder).pack(side=tk.LEFT, padx=5)
+        # Frame for codebase selection
+        context_button_frame = ttk.Frame(codebase_frame)
+        context_button_frame.pack(fill=tk.X, padx=5, pady=5)
+        ttk.Button(context_button_frame, text="Select Project Folder...", command=self._select_codebase_folder).pack(side=tk.LEFT)
+        ttk.Button(context_button_frame, text="Clear Folder", command=self._clear_codebase_folder).pack(side=tk.LEFT, padx=5)
 
         self.codebase_path_label = ttk.Label(codebase_frame, text="No folder selected.")
         self.codebase_path_label.pack(fill=tk.X, padx=5, pady=5)
+
+        # Separator
+        ttk.Separator(codebase_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=5, pady=10)
+
+        # Frame for main actions
+        action_button_frame = tk.Frame(codebase_frame)
+        action_button_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        ttk.Button(action_button_frame, text="Enhance Text", command=self._enhance_text).pack(side=tk.LEFT)
+        ttk.Button(action_button_frame, text="Clear Text", command=self._clear_text).pack(side=tk.LEFT, padx=5)
+        ttk.Button(action_button_frame, text="Copy Result", command=self._copy_result).pack(side=tk.LEFT, padx=5)
 
     def _select_codebase_folder(self):
         """Open a dialog to select a codebase folder."""
@@ -379,14 +390,6 @@ class OptimizedCodingEnglishEnhancer:
             undo=True, maxundo=20
         )
         self.input_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        
-        # Button section
-        button_frame = tk.Frame(parent)
-        button_frame.pack(fill=tk.X, padx=0, pady=5)
-        
-        ttk.Button(button_frame, text="Enhance Text", command=self._enhance_text).pack(side=tk.LEFT)
-        ttk.Button(button_frame, text="Clear", command=self._clear_text).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Copy Result", command=self._copy_result).pack(side=tk.LEFT, padx=5)
 
     def _create_output_section(self, parent):
         """Create the output text section."""
