@@ -381,7 +381,7 @@ class OptimizedCodingEnglishEnhancer:
         self.input_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Button section
-        button_frame = ttk.Frame(parent)
+        button_frame = tk.Frame(parent)
         button_frame.pack(fill=tk.X, padx=0, pady=5)
         
         ttk.Button(button_frame, text="Enhance Text", command=self._enhance_text).pack(side=tk.LEFT)
