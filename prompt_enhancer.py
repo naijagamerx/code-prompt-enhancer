@@ -544,14 +544,14 @@ class OptimizedCodingEnglishEnhancer:
         self._update_history_listbox()
 
     def _on_theme_select(self, event=None):
-        """Handle theme selection with error handling."""
+        """Handle theme selection by saving the choice and prompting for a restart."""
         try:
             friendly_name = self.theme_combo.get()
             self._theme_name = self.THEME_MAP[friendly_name]
-            self.root.set_theme(self._theme_name)
             self._save_config()
+            messagebox.showinfo("Theme Changed", "Theme selection saved. Please restart the application for the change to take effect.")
         except Exception as e:
-            messagebox.showerror("Theme Error", f"Could not change theme: {e}")
+            messagebox.showerror("Theme Error", f"Could not save theme setting: {e}")
 
     def _on_model_select(self, event=None):
         """Handle model selection with notification."""
