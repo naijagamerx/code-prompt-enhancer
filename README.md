@@ -55,7 +55,7 @@ To get started with the Code Prompt Enhancer, you will need Python 3.8+ and pip 
 For a fast and easy setup, open PowerShell and run the following command:
 
 ```powershell
-irm https://raw.githubusercontent.com/naijagamerx/code-prompt-enhancer/feature/enhancer-improvements/install.ps1 | iex
+irm https://raw.githubusercontent.com/naijagamerx/code-prompt-enhancer/refactor/pyqt-rewrite/install.ps1 | iex
 ```
 
 This script will handle the entire setup process for you, including downloading the application, installing dependencies, and launching the GUI.

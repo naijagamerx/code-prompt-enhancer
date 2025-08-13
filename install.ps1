@@ -3,7 +3,7 @@ Clear-Host
 Write-Host "Starting Optimized Coding English Enhancer..."
 
 # Define the repository URL and local directory
-$repoUrl = "https://raw.githubusercontent.com/naijagamerx/code-prompt-enhancer/feature/enhancer-improvements"
+$repoUrl = "https://raw.githubusercontent.com/naijagamerx/code-prompt-enhancer/refactor/pyqt-rewrite"
 $installDir = "$env:APPDATA\code-prompt-enhancer"
 
 # Create the installation directory if it doesn't exist
@@ -16,6 +16,7 @@ $files = @(
     "ascii_art.txt",
     "encrypt_config.py",
     "prompt_enhancer.py",
+    "qt_main_window.py",
     "requirements.txt"
 )
 
