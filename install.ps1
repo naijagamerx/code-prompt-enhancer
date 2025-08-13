@@ -13,8 +13,6 @@ if (-not (Test-Path -Path $installDir)) {
 
 # Define the files to download
 $files = @(
-    "ascii_art.txt",
-    "encrypt_config.py",
     "prompt_enhancer.py",
     "qt_main_window.py",
     "requirements.txt"
