@@ -3,7 +3,7 @@ Clear-Host
 Write-Host "Starting Optimized Coding English Enhancer..."
 
 # Define the repository URL and local directory
-$repoUrl = "https://raw.githubusercontent.com/naijagamerx/code-prompt-enhancer/main"
+$repoUrl = "https://raw.githubusercontent.com/naijagamerx/code-prompt-enhancer/upgrade_version"
 $installDir = "$env:APPDATA\code-prompt-enhancer"
 
 # Create the installation directory if it doesn't exist
@@ -14,9 +14,9 @@ if (-not (Test-Path -Path $installDir)) {
 # Define the files to download
 $files = @(
     "ascii_art.txt",
-    "encrypt_config.py",
     "prompt_enhancer.py",
-    "requirements.txt"
+    "requirements.txt",
+    "qt_main_window.py"
 )
 
 # Download each file
@@ -36,5 +36,5 @@ Push-Location $installDir
 # Ensure requirements are installed silently
 pip install -r requirements.txt --quiet
 # Execute the python GUI script without a console window
-Start-Process pythonw -ArgumentList "prompt_enhancer.py"
+Start-Process python -ArgumentList "prompt_enhancer.py"
 Pop-Location
