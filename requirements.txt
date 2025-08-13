@@ -2,4 +2,4 @@ pyperclip
 keyboard
 cryptography
 groq
-ttkthemes
+PyQt6
