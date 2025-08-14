@@ -160,30 +160,20 @@ try {
     Write-Host "✓ Installation completed successfully!" -ForegroundColor Green
     Write-Host ""
     
-    # Ask user if they want to run the application now
-    $runNow = Read-Host "Would you like to start the application now? (y/n)"
+    # Automatically start the application
+    Write-Host "Starting $AppName..." -ForegroundColor Cyan
+    Write-Host "Note: The application will start in a new window." -ForegroundColor Yellow
+    Write-Host ""
     
-    if ($runNow -match "^[Yy]") {
-        Write-Host ""
-        Write-Host "Starting $AppName..." -ForegroundColor Cyan
-        Write-Host "Note: The application will start in a new window." -ForegroundColor Yellow
-        Write-Host ""
-        
-        # Start the application
-        Start-Process python -ArgumentList "`"$LocalPath`"" -NoNewWindow
-        
-        Write-Host "✓ Application started!" -ForegroundColor Green
-        Write-Host ""
-        Write-Host "The application is now running. You can:" -ForegroundColor White
-        Write-Host "• Use the GUI interface that just opened" -ForegroundColor White
-        Write-Host "• Use global hotkeys (Ctrl+Shift+E or Ctrl+Shift+R) from anywhere" -ForegroundColor White
-        Write-Host "• Copy text and press the hotkey to enhance it automatically" -ForegroundColor White
-    }
-    else {
-        Write-Host ""
-        Write-Host "You can run the application later with:" -ForegroundColor White
-        Write-Host "python `"$LocalPath`"" -ForegroundColor Cyan
-    }
+    # Start the application
+    Start-Process python -ArgumentList "`"$LocalPath`"" -NoNewWindow
+    
+    Write-Host "✓ Application started!" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "The application is now running. You can:" -ForegroundColor White
+    Write-Host "• Use the GUI interface that just opened" -ForegroundColor White
+    Write-Host "• Use global hotkeys (Ctrl+Shift+E or Ctrl+Shift+R) from anywhere" -ForegroundColor White
+    Write-Host "• Copy text and press the hotkey to enhance it automatically" -ForegroundColor White
     
     Write-Host ""
     Write-Host "Installation location: $LocalPath" -ForegroundColor Gray
