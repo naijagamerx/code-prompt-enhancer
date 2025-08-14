@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import scrolledtext, messagebox, ttk
+from tkinter import scrolledtext, messagebox, ttk, filedialog
 import pyperclip
 import keyboard
 import threading
@@ -27,13 +27,17 @@ class OptimizedCodingEnglishEnhancer:
     
     # Class-level constants to avoid repeated allocations
     DEFAULT_MODELS = [
-        'qwen/qwen3-32b', 'deepseek-r1-distill-llama-70b', 'gemma2-9b-it',
-        'llama-3.3-70b-versatile', 'meta-llama/llama-4-maverick-17b-128e-instruct'
+        'moonshotai/kimi-k2-instruct', 'openai/gpt-oss-120b', 'qwen/qwen3-32b', 
+        'deepseek-r1-distill-llama-70b', 'gemma2-9b-it', 'llama-3.3-70b-versatile', 
+        'meta-llama/llama-4-maverick-17b-128e-instruct'
     ]
     
     THEME_MAP = {
         'Radiance (Polished)': 'radiance',
         'Plastik (3D)': 'plastik',
+        'Breeze (Clean)': 'breeze',
+        'Clearlooks (Classic)': 'clearlooks',
+        'Windows Native': 'winnative',
     }
     
     # Pre-compiled regex patterns for better performance
@@ -46,6 +50,9 @@ class OptimizedCodingEnglishEnhancer:
         # Initialize core attributes
         self._groq_client = None
         self._config_file = "enhancer_config.json"
+        self._history_file = "enhancement_history.json"
+        self._enhancement_history = []
+        self._codebase_path = None
         self._is_enhancing = False
         
         # Thread pool for concurrent operations
@@ -64,6 +71,7 @@ class OptimizedCodingEnglishEnhancer:
         
         # Initialize components
         self._load_config()
+        self._load_history()
         self._setup_gui()
         self._setup_hotkeys()
         
@@ -139,22 +147,162 @@ class OptimizedCodingEnglishEnhancer:
             
         except Exception as e:
             print(f"Error saving config: {e}")
+
+    def _load_history(self):
+        """Load enhancement history from a JSON file."""
+        try:
+            if os.path.exists(self._history_file):
+                with open(self._history_file, 'r', encoding='utf-8') as f:
+                    self._enhancement_history = json.load(f)
+        except (IOError, json.JSONDecodeError) as e:
+            print(f"Error loading history: {e}")
+            self._enhancement_history = []
+
+    def _save_history(self):
+        """Save enhancement history to a JSON file."""
+        try:
+            with open(self._history_file, 'w', encoding='utf-8') as f:
+                json.dump(self._enhancement_history, f, indent=4)
+        except IOError as e:
+            print(f"Error saving history: {e}")
     
     def _setup_gui(self):
-        """Setup GUI with lazy loading and optimized widget creation."""
+        """Setup GUI with a two-column, tabbed interface."""
         self.root = ThemedTk(theme=self._theme_name)
         self.root.title("Coding English Enhancer - Optimized")
-        self.root.geometry("800x750")
-        
-        # Create GUI sections
-        self._create_api_key_section()
-        self._create_settings_section()
-        self._create_hotkey_section()
-        self._create_io_sections()
+        self.root.geometry("1200x800") # Adjusted for a wider layout
 
-    def _create_api_key_section(self):
+        # Status bar at the very bottom
+        status_frame = ttk.Frame(self.root)
+        status_frame.pack(fill=tk.X, padx=10, pady=(5,10), side=tk.BOTTOM)
+        self.status_label = ttk.Label(status_frame, text="Ready.")
+        self.status_label.pack(side=tk.LEFT, padx=5)
+
+        # Main container that holds tabs
+        main_container = ttk.Frame(self.root)
+        main_container.pack(expand=True, fill='both', padx=10, pady=10)
+        
+        notebook = ttk.Notebook(main_container)
+        notebook.pack(expand=True, fill='both')
+
+        # Create frames for each tab
+        self.enhancer_tab = ttk.Frame(notebook)
+        self.history_tab = ttk.Frame(notebook)
+
+        notebook.add(self.enhancer_tab, text='Enhancer')
+        notebook.add(self.history_tab, text='History')
+        
+        # --- Populate the Enhancer Tab with a two-column layout ---
+        left_frame = ttk.Frame(self.enhancer_tab)
+        left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
+        
+        right_frame = ttk.Frame(self.enhancer_tab)
+        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+        # Populate the Left Column
+        self._create_api_key_section(left_frame)
+        self._create_settings_section(left_frame)
+        self._create_hotkey_section(left_frame)
+        self._create_codebase_section(left_frame)
+        self._create_input_section(left_frame) # New method for just input
+        
+        # Populate the Right Column
+        self._create_output_section(right_frame) # New method for just output
+
+        # Populate the History Tab
+        self._create_history_section(self.history_tab)
+
+    def _create_codebase_section(self, parent):
+        """Create the optional codebase context section."""
+        codebase_frame = ttk.LabelFrame(parent, text="Context and Actions")
+        codebase_frame.pack(fill=tk.X, padx=10, pady=5, ipady=5)
+
+        # Frame for codebase selection
+        context_button_frame = ttk.Frame(codebase_frame)
+        context_button_frame.pack(fill=tk.X, padx=5, pady=5)
+        ttk.Button(context_button_frame, text="Select Project Folder...", command=self._select_codebase_folder).pack(side=tk.LEFT)
+        ttk.Button(context_button_frame, text="Clear Folder", command=self._clear_codebase_folder).pack(side=tk.LEFT, padx=5)
+        
+        self.codebase_path_label = ttk.Label(codebase_frame, text="No folder selected.")
+        self.codebase_path_label.pack(fill=tk.X, padx=5, pady=5)
+
+        # Separator
+        ttk.Separator(codebase_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=5, pady=10)
+
+        # Frame for main actions
+        action_button_frame = tk.Frame(codebase_frame)
+        action_button_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Button(action_button_frame, text="Enhance Text", command=self._enhance_text).pack(side=tk.LEFT)
+        ttk.Button(action_button_frame, text="Clear Text", command=self._clear_text).pack(side=tk.LEFT, padx=5)
+        ttk.Button(action_button_frame, text="Copy Result", command=self._copy_result).pack(side=tk.LEFT, padx=5)
+
+    def _select_codebase_folder(self):
+        """Open a dialog to select a codebase folder."""
+        folder_path = filedialog.askdirectory()
+        if folder_path:
+            self._codebase_path = folder_path
+            self.codebase_path_label.config(text=f"Selected: {self._codebase_path}")
+            self.status_label.config(text=f"Codebase folder set to: {os.path.basename(folder_path)}")
+
+    def _clear_codebase_folder(self):
+        """Clear the selected codebase folder."""
+        self._codebase_path = None
+        self.codebase_path_label.config(text="No folder selected.")
+        self.status_label.config(text="Codebase folder cleared.")
+
+    def _extract_keywords_from_prompt(self, text):
+        """Extract potential keywords and file paths from the user's prompt."""
+        # Find potential file paths (e.g., 'path/to/file.py')
+        path_pattern = re.compile(r'[\w\-\./]+\.[\w]+')
+        paths = set(path_pattern.findall(text))
+        
+        # Extract other potential keywords, ignoring common words
+        stop_words = {'the', 'a', 'an', 'is', 'to', 'in', 'on', 'for', 'of', 'with', 'and', 'or', 'but'}
+        words = set(re.findall(r'\b\w+\b', text.lower()))
+        keywords = words - stop_words
+        
+        return keywords.union(paths)
+
+    def _find_relevant_files(self, keywords):
+        """Search for files in the codebase that match the keywords."""
+        relevant_files = set()
+        if not self._codebase_path or not keywords:
+            return ""
+
+        for root, _, files in os.walk(self._codebase_path):
+            if any(d in root for d in {'.git', '__pycache__', 'node_modules'}):
+                continue
+
+            for file in files:
+                if len(relevant_files) >= 10:  # Limit to 10 relevant files
+                    break
+                
+                file_path = os.path.join(root, file)
+                # Check if keywords are in the filename
+                if any(k in file.lower() for k in keywords):
+                    relevant_files.add(file_path)
+                    continue
+                
+                # If not in filename, check file content
+                try:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        content_sample = f.read(512)  # Read first 512 bytes
+                        if any(k in content_sample.lower() for k in keywords):
+                            relevant_files.add(file_path)
+                except Exception:
+                    continue # Ignore files we can't read
+        
+        if not relevant_files:
+            return ""
+
+        # Format the output
+        relative_paths = [os.path.relpath(p, self._codebase_path) for p in relevant_files]
+        return "Relevant files found:\n- " + "\n- ".join(relative_paths)
+
+    def _create_api_key_section(self, parent):
         """Create API key section with optimized layout."""
-        api_frame = ttk.LabelFrame(self.root, text="API Key")
+        api_frame = ttk.LabelFrame(parent, text="API Key")
         api_frame.pack(fill=tk.X, padx=10, pady=(10, 5), ipady=5)
         
         ttk.Label(api_frame, text="Groq API Key:").pack(side=tk.LEFT, padx=5)
@@ -165,9 +313,9 @@ class OptimizedCodingEnglishEnhancer:
         
         ttk.Button(api_frame, text="Save Key", command=self._save_api_key).pack(side=tk.RIGHT, padx=5)
 
-    def _create_settings_section(self):
+    def _create_settings_section(self, parent):
         """Create settings section with cached widget references."""
-        settings_frame = ttk.LabelFrame(self.root, text="Configuration")
+        settings_frame = ttk.LabelFrame(parent, text="Configuration")
         settings_frame.pack(fill=tk.X, padx=10, pady=5, ipady=5)
         
         # Model selection
@@ -196,9 +344,9 @@ class OptimizedCodingEnglishEnhancer:
         self.theme_combo.set(friendly_theme_name)
         self.theme_combo.bind("<<ComboboxSelected>>", self._on_theme_select)
 
-    def _create_hotkey_section(self):
+    def _create_hotkey_section(self, parent):
         """Create hotkey section with optimized event handling."""
-        hotkey_frame = ttk.LabelFrame(self.root, text="Hotkey Settings")
+        hotkey_frame = ttk.LabelFrame(parent, text="Hotkey Settings")
         hotkey_frame.pack(fill=tk.X, padx=10, pady=5, ipady=5)
         
         instruction_text = ("To set a keyboard hotkey, click a box and press the combo. "
@@ -234,43 +382,83 @@ class OptimizedCodingEnglishEnhancer:
         ttk.Button(button_frame, text="Reset to Defaults", 
                   command=self._reset_hotkeys_to_default).pack(side=tk.LEFT, padx=5)
         
-    def _create_io_sections(self):
-        """Create input/output sections with optimized text widgets."""
+    def _create_input_section(self, parent):
+        """Create the input text and button sections."""
         # Input section
-        input_frame = ttk.LabelFrame(self.root, text="Input Text (or Copy text and press hotkey)")
-        input_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        input_frame = ttk.LabelFrame(parent, text="Input Text (or Copy text and press hotkey)")
+        input_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=5)
         
         self.input_text = scrolledtext.ScrolledText(
-            input_frame, height=10, wrap=tk.WORD, bd=0, relief="flat",
-            undo=True, maxundo=20  # Enable undo with limited history
+            input_frame, height=15, wrap=tk.WORD, bd=0, relief="flat",
+            undo=True, maxundo=20
         )
         self.input_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        
-        # Button section
-        button_frame = ttk.Frame(self.root)
-        button_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        ttk.Button(button_frame, text="Enhance Text", command=self._enhance_text).pack(side=tk.LEFT, padx=(5,0))
-        ttk.Button(button_frame, text="Clear", command=self._clear_text).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Copy Result", command=self._copy_result).pack(side=tk.LEFT, padx=5)
-        
-        # Output section
-        output_frame = ttk.LabelFrame(self.root, text="Enhanced Text")
-        output_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+    def _create_output_section(self, parent):
+        """Create the output text section."""
+        output_frame = ttk.LabelFrame(parent, text="Enhanced Text")
+        output_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
         
         self.output_text = scrolledtext.ScrolledText(
             output_frame, height=10, wrap=tk.WORD, bd=0, relief="flat",
             undo=True, maxundo=20
         )
         self.output_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        
-        # Status section
-        status_frame = ttk.Frame(self.root)
-        status_frame.pack(fill=tk.X, padx=10, pady=(5,10))
-        
-        self.status_label = ttk.Label(status_frame, text="Ready. Copy text to your clipboard, then press your hotkey.")
-        self.status_label.pack(side=tk.LEFT, padx=5)
     
+    def _create_history_section(self, parent):
+        """Create the enhancement history section."""
+        history_frame = ttk.LabelFrame(parent, text="Enhancement History (Last 10)")
+        history_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        list_frame = ttk.Frame(history_frame)
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        self.history_listbox = tk.Listbox(list_frame, height=5)
+        self.history_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.history_listbox.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.history_listbox.config(yscrollcommand=scrollbar.set)
+
+        button_frame = ttk.Frame(history_frame)
+        button_frame.pack(fill=tk.X, padx=5, pady=(0, 5))
+        
+        ttk.Button(button_frame, text="Copy Selected to Output", command=self._copy_history_to_output).pack(side=tk.LEFT)
+        
+        self._update_history_listbox()
+
+    def _update_history_listbox(self):
+        """Update the history listbox with recent enhancements."""
+        self.history_listbox.delete(0, tk.END)
+        for item in self._enhancement_history:
+            # Show the first 80 characters as a preview
+            preview = item.replace('\n', ' ').strip()
+            self.history_listbox.insert(tk.END, f"{preview[:80]}...")
+
+    def _copy_history_to_output(self):
+        """Copy the selected history item to the output text widget."""
+        selected_indices = self.history_listbox.curselection()
+        if not selected_indices:
+            messagebox.showwarning("Warning", "Please select an item from the history.")
+            return
+        
+        selected_index = selected_indices[0]
+        full_text = self._enhancement_history[selected_index]
+        
+        self.output_text.delete("1.0", tk.END)
+        self.output_text.insert("1.0", full_text)
+        self.status_label.config(text="Copied from history to output.")
+
+    def _add_to_history(self, text):
+        """Add a new item to the history, save, and update the listbox."""
+        if not text or not text.strip():
+            return
+            
+        self._enhancement_history.insert(0, text)
+        self._enhancement_history = self._enhancement_history[:10]  # Keep only the last 10
+        self._save_history()
+        self._update_history_listbox()
+
     def _on_theme_select(self, event=None):
         """Handle theme selection with error handling."""
         try:
@@ -313,7 +501,7 @@ I've identified several issues that require attention:
 -   For example, searching for "John Doe" fails, while searching for "John" may work as expected.
 [END EXAMPLE]
 ---
-Now, using the exact same professional format and quality, process the developer's actual text provided below.
+{codebase_context}Now, using the exact same professional format and quality, process the developer's actual text provided below.
 **Developer's Actual Text to Process:**
 ---
 {text}
@@ -322,9 +510,20 @@ Now, using the exact same professional format and quality, process the developer
 """
 
     def _get_enhancement_prompt(self, text):
-        """Generate enhancement prompt using cached template."""
+        """Generate enhancement prompt using cached template, including smart context."""
+        codebase_context = ""
+        if self._codebase_path and os.path.isdir(self._codebase_path):
+            keywords = self._extract_keywords_from_prompt(text)
+            context_str = self._find_relevant_files(keywords)
+            if context_str:
+                codebase_context = (
+                    "The user has provided a codebase. The following files seem most relevant to their request. "
+                    "Use them to make the task breakdown more specific.\n"
+                    f"**Relevant Files:**\n---\n{context_str}\n---\n\n"
+                )
+            
         template = self._get_enhancement_prompt_template()
-        return template.format(text=text)
+        return template.format(text=text, codebase_context=codebase_context)
 
     def _enhance_with_groq(self, text):
         """Enhanced Groq API call with better error handling and optimization."""
@@ -452,6 +651,7 @@ Now, using the exact same professional format and quality, process the developer
         self.output_text.delete("1.0", tk.END)
         self.output_text.insert("1.0", enhanced_text)
         self.status_label.config(text="Text enhanced successfully!")
+        self._add_to_history(enhanced_text)
 
     def _enhance_selected_text(self):
         """Enhanced clipboard text processing with better error handling."""
@@ -487,6 +687,7 @@ Now, using the exact same professional format and quality, process the developer
             
             self._is_enhancing = False
             self.root.after(0, lambda: self.status_label.config(text="Enhanced text copied!"))
+            self._add_to_history(enhanced_text)
             
         except Exception as e:
             self._is_enhancing = False
