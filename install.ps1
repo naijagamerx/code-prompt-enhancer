@@ -20,9 +20,9 @@ Write-Host ""
 
 # Configuration
 $AppName = "Coding English Enhancer"
-$AppUrl = "https://raw.githubusercontent.com/demohomex/prompter/main/prompt_enhancer.py"  # Replace with your actual URL
+$AppUrl = "https://raw.githubusercontent.com/naijagamerx/prompter/main/prompt_enhancer.py"
 $LocalPath = "$env:TEMP\prompt_enhancer.py"
-$RequirementsUrl = "https://raw.githubusercontent.com/demohomex/prompter/main/requirements.txt"  # Replace with your actual URL
+$RequirementsUrl = "https://raw.githubusercontent.com/naijagamerx/prompter/main/requirements.txt"
 $RequirementsPath = "$env:TEMP\requirements.txt"
 
 # Function to check if Python is installed
